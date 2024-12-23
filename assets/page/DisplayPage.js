@@ -7,6 +7,8 @@ import {
   Alert,
   TouchableOpacity,
   Image,
+  SafeAreaView,
+  ScrollView, // Import ScrollView
 } from 'react-native';
 import firestore from '@react-native-firebase/firestore';
 import {useFocusEffect} from '@react-navigation/native';
@@ -14,11 +16,21 @@ import {useFocusEffect} from '@react-navigation/native';
 const DisplayPage = ({route, navigation}) => {
   const {userId} = route.params; // Get the userId passed from the login screen
   const [recipes, setRecipes] = useState([]);
-  const [selectedType, setSelectedType] = useState(''); // Store selected type
+  const [selectedType, setSelectedType] = useState('All Recipes'); // Default to 'All Recipes'
+
   const types = [
-    {id: 1, name: 'Appetizer'},
-    {id: 2, name: 'Main Course'},
-    {id: 3, name: 'Dessert'},
+    {id: 0, name: 'All Recipes', icon: require('../images/allrecipes.png')},
+    {id: 1, name: 'Appetizer', icon: require('../images/appetizer.png')},
+    {id: 2, name: 'Main Course', icon: require('../images/maincourse.png')},
+    {id: 3, name: 'Dessert', icon: require('../images/dessert.png')},
+  ];
+
+  const softPaletteColors = [
+    '#FFEBEE', // Light red
+    '#FFF3E0', // Light orange
+    '#E8F5E9', // Light green
+    '#E3F2FD', // Light blue
+    '#F3E5F5', // Light purple
   ];
 
   const fetchRecipes = async () => {
@@ -28,7 +40,8 @@ const DisplayPage = ({route, navigation}) => {
         .doc(userId)
         .collection('recipes');
 
-      if (selectedType) {
+      // If "All Recipes" is selected, don't filter by type
+      if (selectedType && selectedType !== 'All Recipes') {
         query = query.where('type', '==', selectedType);
       }
 
@@ -53,30 +66,33 @@ const DisplayPage = ({route, navigation}) => {
     if (userId) {
       fetchRecipes(); // Fetch recipes when userId or selectedType changes
     }
-  }, [userId, selectedType]); // Refetch recipes when selectedType changes
+  }, [userId, selectedType]);
 
-  // Use useFocusEffect to fetch recipes again when the page comes into focus
   useFocusEffect(
     React.useCallback(() => {
-      fetchRecipes(); // Fetch recipes when returning to this screen
-    }, [selectedType]), // Refetch when selectedType changes
+      fetchRecipes();
+    }, [selectedType]),
   );
 
-  const renderRecipe = ({item}) => (
+  // Default image path
+  const defaultImage = require('../images/default.png');
+
+  const renderRecipe = ({item, index}) => (
     <TouchableOpacity
-      style={styles.recipeCard}
-      onPress={() => navigation.navigate('RecipeDetail', {recipe: item})} // Navigate to RecipeDetail screen with the recipe data
-    >
+      style={[
+        styles.recipeCard,
+        {backgroundColor: softPaletteColors[index % softPaletteColors.length]},
+      ]}
+      onPress={() => navigation.navigate('RecipeDetail', {recipe: item})}>
       <View style={styles.recipeContent}>
-        {/* Display image on the left if it exists */}
-        {item.image && (
-          <Image
-            source={{uri: `file://${item.image}`}} // Correctly handle local image paths
-            style={styles.recipeImage}
-          />
-        )}
+        <Image
+          source={item.image ? {uri: `file://${item.image}`} : defaultImage} // Correct file URI
+          style={styles.recipeImage}
+        />
         <View style={styles.recipeTextContainer}>
           <Text style={styles.recipeTitle}>{item.title}</Text>
+          {/* Display the category (type) below the title */}
+          <Text style={styles.recipeCategory}>{item.type}</Text>
           <Text>{item.description}</Text>
         </View>
       </View>
@@ -84,48 +100,42 @@ const DisplayPage = ({route, navigation}) => {
   );
 
   return (
-    <View style={styles.container}>
-      <Text style={styles.pageTitle}>Your Recipes</Text>
-
-      {/* Filter Buttons for Recipe Type */}
+    <SafeAreaView style={styles.container}>
+      <View style={styles.circleBackground}></View>
+      <Text style={styles.pageTitle2}>Got a tasty dish</Text>
+      <Text style={styles.pageTitle2}>in mind?</Text>
+      <Text style={styles.pageTitle}>Categories</Text>
       <View style={styles.buttonContainer}>
-        {types.map(type => (
-          <TouchableOpacity
-            key={type.id}
-            style={[
-              styles.filterButton,
-              selectedType === type.name && styles.selectedButton, // Highlight selected button
-            ]}
-            onPress={() => setSelectedType(type.name)} // Set selected type
-          >
-            <Text style={styles.filterButtonText}>{type.name}</Text>
-          </TouchableOpacity>
-        ))}
-        {/* Button to show all recipes */}
-        <TouchableOpacity
-          style={[
-            styles.filterButton,
-            selectedType === '' && styles.selectedButton,
-          ]} // Highlight when "All Recipes" is selected
-          onPress={() => setSelectedType('')} // Clear type filter to show all
-        >
-          <Text style={styles.filterButtonText}>All Recipes</Text>
-        </TouchableOpacity>
+        {/* Scrollable categories */}
+        <ScrollView horizontal showsHorizontalScrollIndicator={false}>
+          {types.map(type => (
+            <TouchableOpacity
+              key={type.id}
+              style={styles.filterButton}
+              onPress={() => setSelectedType(type.name)}>
+              <Image source={type.icon} style={styles.typeIcon} />
+              <Text
+                style={[
+                  styles.filterButtonText,
+                  {color: selectedType === type.name ? '#25AE87' : '#7d7d7d'},
+                ]}>
+                {type.name}
+              </Text>
+            </TouchableOpacity>
+          ))}
+        </ScrollView>
       </View>
-
       <FlatList
         data={recipes}
         renderItem={renderRecipe}
         keyExtractor={item => item.id}
       />
-
-      {/* Add Recipe Button */}
       <TouchableOpacity
         style={styles.addButton}
         onPress={() => navigation.navigate('AddRecipe', {userId})}>
         <Text style={styles.addButtonText}>Add Recipe</Text>
       </TouchableOpacity>
-    </View>
+    </SafeAreaView>
   );
 };
 
@@ -133,65 +143,74 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     padding: 20,
-    backgroundColor: '#f9f9f9',
+    backgroundColor: 'white',
+    marginTop: 50,
   },
   pageTitle: {
-    fontSize: 24,
+    fontSize: 20,
     fontWeight: 'bold',
-    textAlign: 'center',
-    marginBottom: 20,
+    textAlign: 'left',
+    marginTop: 30,
+  },
+  pageTitle2: {
+    fontSize: 24,
+    textAlign: 'left',
+    fontWeight: 'bold',
+    fontStyle: 'italic',
+  },
+  typeIcon: {
+    width: 30,
+    height: 30,
+    marginBottom: 5,
   },
   recipeCard: {
     backgroundColor: '#fff',
     borderRadius: 5,
     padding: 15,
     marginBottom: 15,
-    borderWidth: 1,
+    borderWidth: 0,
     borderColor: '#ddd',
   },
   recipeContent: {
-    flexDirection: 'row', // Align image and text horizontally
-    alignItems: 'center', // Vertically align the content in the center
+    flexDirection: 'row',
+    alignItems: 'center',
   },
   recipeImage: {
-    width: 80, // Set a fixed width for the image
-    height: 80, // Set a fixed height for the image
-    borderRadius: 5, // Optional: to round corners of the image
-    marginRight: 15, // Space between the image and text
+    width: 80,
+    height: 80,
+    borderRadius: 40,
+    marginRight: 15,
   },
   recipeTextContainer: {
-    flex: 1, // Take up remaining space
+    flex: 1,
   },
   recipeTitle: {
     fontSize: 18,
     fontWeight: 'bold',
   },
+  recipeCategory: {
+    fontSize: 14,
+    color: '#7d7d7d',
+    marginVertical: 5,
+  },
   buttonContainer: {
-    marginBottom: 20,
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    justifyContent: 'center',
+    marginVertical: 20,
   },
   filterButton: {
-    backgroundColor: '#007bff',
-    paddingVertical: 10,
-    paddingHorizontal: 20,
-    margin: 5,
-    borderRadius: 5,
-  },
-  selectedButton: {
-    backgroundColor: '#28a745', // Green color when selected
+    alignItems: 'center',
+    marginBottom: 10,
+    width: 80, // Adjust width to make buttons visually appealing in horizontal layout
   },
   filterButtonText: {
-    color: '#fff',
-    fontSize: 16,
+    fontSize: 14,
     fontWeight: 'bold',
+    textAlign: 'center',
   },
   addButton: {
-    backgroundColor: '#28a745',
+    backgroundColor: '#25AE87',
     paddingVertical: 12,
     paddingHorizontal: 30,
-    borderRadius: 5,
+    borderRadius: 50,
     alignItems: 'center',
     marginTop: 20,
   },

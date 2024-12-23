@@ -3,12 +3,14 @@ import {
   View,
   Text,
   TextInput,
-  Button,
-  StyleSheet,
   TouchableOpacity,
   Image,
   Alert,
   ScrollView,
+  StyleSheet,
+  KeyboardAvoidingView,
+  Platform,
+  SafeAreaView,
 } from 'react-native';
 import {launchImageLibrary} from 'react-native-image-picker';
 import RNFS from 'react-native-fs';
@@ -19,13 +21,14 @@ import recipeTypes from '../data/recipetypes.json';
 
 const EditRecipe = ({route, navigation}) => {
   const {recipeId, recipe} = route.params;
-
+  const [ingredientHeight, setIngredientHeight] = useState(90); // Minimum height
+  const [directionHeight, setDirectionHeight] = useState(90);
   const [title, setTitle] = useState(recipe.title);
   const [ingredient, setIngredient] = useState(recipe.ingredient);
   const [direction, setDirection] = useState(recipe.direction);
   const [image, setImage] = useState(recipe.image);
   const [selectedType, setSelectedType] = useState(
-    recipe.type || recipeTypes[0].name,
+    recipe.type || recipeTypes[0]?.name,
   );
 
   const selectImage = () => {
@@ -91,88 +94,125 @@ const EditRecipe = ({route, navigation}) => {
   };
 
   return (
-    <ScrollView contentContainerStyle={styles.scrollContainer}>
-      <View style={styles.container}>
-        <Text style={styles.label}>Title:</Text>
-        <TextInput style={styles.input} value={title} onChangeText={setTitle} />
+    <SafeAreaView style={{flex: 1}}>
+      <KeyboardAvoidingView
+        style={{flex: 1}}
+        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}>
+        <ScrollView contentContainerStyle={{flexGrow: 1, paddingBottom: 20}}>
+          <View style={styles.container}>
+            <Text style={styles.label}>Title:</Text>
+            <TextInput
+              style={styles.input}
+              placeholder="Enter recipe title"
+              value={title}
+              onChangeText={setTitle}
+            />
 
-        <Text style={styles.label}>Ingredients:</Text>
-        <TextInput
-          style={styles.input}
-          value={ingredient}
-          onChangeText={setIngredient}
-        />
+            <Text style={styles.label}>Ingredients:</Text>
+            <TextInput
+              style={[styles.input, {height: Math.max(40, ingredientHeight)}]}
+              placeholder="Enter ingredients"
+              value={ingredient}
+              onChangeText={setIngredient}
+              multiline={true}
+              onContentSizeChange={event =>
+                setIngredientHeight(event.nativeEvent.contentSize.height)
+              }
+            />
 
-        <Text style={styles.label}>Directions:</Text>
-        <TextInput
-          style={styles.input}
-          value={direction}
-          onChangeText={setDirection}
-        />
+            <Text style={styles.label}>Directions:</Text>
+            <TextInput
+              style={[styles.input, {height: Math.max(40, directionHeight)}]}
+              placeholder="Enter directions"
+              value={direction}
+              onChangeText={setDirection}
+              multiline={true}
+              onContentSizeChange={event =>
+                setDirectionHeight(event.nativeEvent.contentSize.height)
+              }
+            />
 
-        <Text style={styles.label}>Recipe Type:</Text>
-        <View style={styles.wheelPickerContainer}>
-          <WheelPicker
-            data={recipeTypes.map((type, index) => ({
-              value: index,
-              label: type.name,
-            }))}
-            value={recipeTypes.findIndex(type => type.name === selectedType)}
-            onValueChanged={({item}) =>
-              setSelectedType(recipeTypes[item.value].name)
-            }
-          />
-        </View>
+            <Text style={styles.label}>Recipe Type:</Text>
+            <View style={styles.wheelPickerContainer}>
+              {recipeTypes && recipeTypes.length > 0 ? (
+                <WheelPicker
+                  data={recipeTypes.map((type, index) => ({
+                    value: index,
+                    label: type.name,
+                  }))}
+                  value={recipeTypes.findIndex(
+                    type => type.name === selectedType,
+                  )}
+                  onValueChanged={({item}) =>
+                    setSelectedType(
+                      recipeTypes[item.value]?.name || 'Default Type',
+                    )
+                  }
+                />
+              ) : (
+                <Text style={styles.label}>No recipe types available.</Text>
+              )}
+            </View>
 
-        <Text style={styles.label}>Image:</Text>
-        <TouchableOpacity style={styles.imagePicker} onPress={selectImage}>
-          <Text style={styles.imagePickerText}>
-            {image ? 'Change Image' : 'Select Image'}
-          </Text>
-        </TouchableOpacity>
-        {image && (
-          <Image
-            source={{uri: `file://${image}`}}
-            style={styles.imagePreview}
-            resizeMode="cover"
-          />
-        )}
+            <Text style={styles.label}>Image:</Text>
+            <TouchableOpacity style={styles.imagePicker} onPress={selectImage}>
+              <Text style={styles.imagePickerText}>
+                {image ? 'Change Image' : 'Select Image'}
+              </Text>
+            </TouchableOpacity>
+            {image && (
+              <Image
+                source={{uri: `file://${image}`}}
+                style={styles.imagePreview}
+                resizeMode="contain"
+              />
+            )}
 
-        <Button title="Update Recipe" onPress={handleUpdateRecipe} />
-      </View>
-    </ScrollView>
+            <TouchableOpacity
+              style={styles.submitButton}
+              onPress={handleUpdateRecipe}>
+              <Text style={styles.submitButtonText}>Update Recipe</Text>
+            </TouchableOpacity>
+          </View>
+        </ScrollView>
+      </KeyboardAvoidingView>
+    </SafeAreaView>
   );
 };
 
 const styles = StyleSheet.create({
-  scrollContainer: {
-    flexGrow: 1,
-    padding: 20,
-  },
   container: {
     flex: 1,
+    padding: 20,
+    //paddingTop: 60,
+    backgroundColor: '#fff',
   },
   label: {
     fontSize: 18,
     fontWeight: 'bold',
-    marginBottom: 5,
+    marginVertical: 8,
+    color: '#333',
   },
   input: {
     borderWidth: 1,
     borderColor: '#ddd',
-    borderRadius: 5,
-    padding: 10,
+    borderRadius: 8,
+    padding: 12,
     fontSize: 16,
+    backgroundColor: '#fff',
     marginBottom: 15,
+    textAlignVertical: 'top', // Ensures text starts at the top
   },
   wheelPickerContainer: {
-    height: 100,
-    marginBottom: 100,
+    height: 120,
+    marginBottom: 20,
+    justifyContent: 'center',
+    alignItems: 'center',
   },
   imagePicker: {
-    padding: 10,
+    padding: 12,
     backgroundColor: '#007bff',
-    borderRadius: 5,
+    borderRadius: 8,
     alignItems: 'center',
     marginBottom: 15,
   },
@@ -184,7 +224,18 @@ const styles = StyleSheet.create({
     width: '100%',
     height: 200,
     marginBottom: 15,
-    borderRadius: 5,
+    borderRadius: 8,
+  },
+  submitButton: {
+    backgroundColor: '#25AE87',
+    padding: 15,
+    borderRadius: 8,
+    alignItems: 'center',
+  },
+  submitButtonText: {
+    color: '#fff',
+    fontSize: 18,
+    fontWeight: 'bold',
   },
 });
 

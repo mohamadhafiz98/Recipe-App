@@ -1,27 +1,37 @@
-import React, {useState, useEffect} from 'react';
+import React from 'react';
 import {
   View,
   Text,
-  Image,
   StyleSheet,
   ScrollView,
   TouchableOpacity,
   Alert,
+  ImageBackground,
+  SafeAreaView,
 } from 'react-native';
 import {useNavigation} from '@react-navigation/native';
 import firestore from '@react-native-firebase/firestore';
 import auth from '@react-native-firebase/auth';
 
 const RecipeDetail = ({route}) => {
-  const {recipe} = route.params; // Get the recipe passed from DisplayPage
-  const navigation = useNavigation(); // Initialize the navigation hook
+  const {recipe} = route.params || {}; // Safely access the recipe
+
+  // Return an early exit if the recipe doesn't exist
+  if (!recipe) {
+    return (
+      <SafeAreaView style={styles.container}>
+        <Text>No recipe data found.</Text>
+      </SafeAreaView>
+    );
+  }
+
+  const navigation = useNavigation();
 
   const handleEditRecipe = () => {
     navigation.navigate('EditRecipe', {recipeId: recipe.id, recipe});
   };
 
   const handleDeleteRecipe = async () => {
-    // Show a confirmation alert before deleting
     Alert.alert(
       'Confirm Deletion',
       'Are you sure you want to delete this recipe?',
@@ -32,18 +42,25 @@ const RecipeDetail = ({route}) => {
           style: 'destructive',
           onPress: async () => {
             try {
-              const userId = auth().currentUser.uid; // Get the current logged-in userId
+              const currentUser = auth().currentUser;
+              if (!currentUser) {
+                Alert.alert(
+                  'Error',
+                  'You must be logged in to delete a recipe.',
+                );
+                return;
+              }
 
-              // Delete the recipe document from Firestore using the recipeId
+              const userId = currentUser.uid;
               await firestore()
                 .collection('users')
-                .doc(userId) // Use the current user's ID
+                .doc(userId)
                 .collection('recipes')
-                .doc(recipe.id) // Use the correct document ID here
+                .doc(recipe.id)
                 .delete();
 
               Alert.alert('Success', 'Recipe deleted successfully!');
-              navigation.goBack(); // Navigate back to the previous screen after deleting
+              navigation.navigate('DisplayPage');
             } catch (error) {
               console.error('Error deleting recipe: ', error);
               Alert.alert(
@@ -59,85 +76,107 @@ const RecipeDetail = ({route}) => {
   };
 
   return (
-    <ScrollView style={styles.container}>
-      <Text style={styles.title}>{recipe.title}</Text>
-
-      {/* Display Category */}
-      <Text style={styles.categoryText}>
-        Category: {recipe.type}
-        {/* Ensure the recipe has a category field */}
-      </Text>
-
+    <SafeAreaView style={styles.container}>
       {recipe.image && (
-        <Image source={{uri: `file://${recipe.image}`}} style={styles.image} />
+        <ImageBackground
+          source={{uri: `file://${recipe.image}`}}
+          style={styles.imageBackground}
+        />
       )}
-      <Text style={styles.label}>Ingredients:</Text>
-      <Text>{recipe.ingredient}</Text>
-      <Text style={styles.label}>Directions:</Text>
-      <Text>{recipe.direction}</Text>
+      <ScrollView
+        contentContainerStyle={styles.scrollContent}
+        showsVerticalScrollIndicator={false}>
+        <View style={styles.scrollInner}>
+          <Text style={styles.title}>{recipe.title}</Text>
+          <Text style={styles.categoryText}>Category: {recipe.type}</Text>
+          <Text style={styles.label}>Ingredients:</Text>
+          <Text style={styles.contentText}>{recipe.ingredient}</Text>
+          <Text style={styles.label}>Directions:</Text>
+          <Text style={styles.contentText}>{recipe.direction}</Text>
 
-      <TouchableOpacity style={styles.editButton} onPress={handleEditRecipe}>
-        <Text style={styles.editButtonText}>Edit Recipe</Text>
-      </TouchableOpacity>
+          <TouchableOpacity
+            style={styles.editButton}
+            onPress={handleEditRecipe}>
+            <Text style={styles.buttonText}>Edit Recipe</Text>
+          </TouchableOpacity>
 
-      {/* Delete button */}
-      <TouchableOpacity
-        style={styles.deleteButton}
-        onPress={handleDeleteRecipe}>
-        <Text style={styles.deleteButtonText}>Delete Recipe</Text>
-      </TouchableOpacity>
-    </ScrollView>
+          <TouchableOpacity
+            style={styles.deleteButton}
+            onPress={handleDeleteRecipe}>
+            <Text style={styles.buttonText}>Delete Recipe</Text>
+          </TouchableOpacity>
+        </View>
+      </ScrollView>
+    </SafeAreaView>
   );
 };
 
 const styles = StyleSheet.create({
   container: {
     flex: 1,
+    backgroundColor: '#fff',
+  },
+  imageBackground: {
+    width: '100%',
+    height: 250,
+    position: 'absolute',
+    top: 0,
+    left: 0,
+  },
+  scrollContent: {
+    paddingTop: 220, // To prevent content overlap with the image
+  },
+  scrollInner: {
+    backgroundColor: 'white',
+    borderRadius: 30,
     padding: 20,
-    backgroundColor: '#f9f9f9',
+    shadowColor: '#000',
+    shadowOffset: {width: 0, height: 2},
+    shadowOpacity: 0.1,
+    shadowRadius: 5,
+    elevation: 3,
   },
   title: {
-    fontSize: 24,
+    fontSize: 28,
     fontWeight: 'bold',
-    marginBottom: 20,
+    color: '#333',
+    textAlign: 'left',
+    marginBottom: 10,
   },
   categoryText: {
     fontSize: 18,
     fontStyle: 'italic',
     marginBottom: 10,
-  },
-  image: {
-    width: '100%',
-    height: 200,
-    marginBottom: 20,
-    borderRadius: 5,
+    color: '#555',
   },
   label: {
-    fontSize: 18,
+    fontSize: 20,
     fontWeight: 'bold',
-    marginVertical: 10,
+    marginTop: 15,
+  },
+  contentText: {
+    fontSize: 16,
+    color: '#666',
+    marginBottom: 20,
   },
   editButton: {
-    backgroundColor: '#007bff',
+    backgroundColor: '#4CAF50',
     padding: 10,
-    marginTop: 20,
     borderRadius: 5,
+    marginBottom: 10,
     alignItems: 'center',
-  },
-  editButtonText: {
-    color: '#fff',
-    fontSize: 18,
   },
   deleteButton: {
-    backgroundColor: '#dc3545', // Red color for delete
+    backgroundColor: '#F44336',
     padding: 10,
-    marginTop: 20,
     borderRadius: 5,
+    marginBottom: 10,
     alignItems: 'center',
   },
-  deleteButtonText: {
+  buttonText: {
     color: '#fff',
-    fontSize: 18,
+    fontSize: 16,
+    fontWeight: 'bold',
   },
 });
 

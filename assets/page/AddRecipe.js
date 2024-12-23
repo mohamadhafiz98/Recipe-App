@@ -3,27 +3,32 @@ import {
   View,
   Text,
   TextInput,
-  Button,
   StyleSheet,
   ScrollView,
   Alert,
   Image,
   TouchableOpacity,
+  KeyboardAvoidingView,
+  Platform,
+  SafeAreaView,
 } from 'react-native';
 import auth from '@react-native-firebase/auth';
 import firestore from '@react-native-firebase/firestore';
 import {launchImageLibrary} from 'react-native-image-picker';
 import RNFS from 'react-native-fs';
-import WheelPicker from '@quidone/react-native-wheel-picker'; // Import WheelPicker
+import WheelPicker from '@quidone/react-native-wheel-picker';
 import recipeTypes from '../data/recipetypes.json';
-console.log(recipeTypes); // Ensure it logs the array
 
 const AddRecipe = ({navigation}) => {
+  const [ingredientHeight, setIngredientHeight] = useState(90); // Minimum height
+  const [directionHeight, setDirectionHeight] = useState(90); // Minimum height
   const [title, setTitle] = useState('');
   const [ingredient, setIngredient] = useState('');
   const [direction, setDirection] = useState('');
   const [image, setImage] = useState(null);
-  const [selectedType, setSelectedType] = useState(recipeTypes[0].name); // Default to the first type
+  const [selectedType, setSelectedType] = useState(
+    recipeTypes?.[0]?.name || 'Default Type',
+  );
 
   const selectImage = () => {
     launchImageLibrary({mediaType: 'photo'}, async response => {
@@ -34,10 +39,8 @@ const AddRecipe = ({navigation}) => {
         Alert.alert('Error', 'Failed to select an image.');
       } else {
         const selectedImage = response.assets[0];
-
         const localPath =
           RNFS.DocumentDirectoryPath + '/' + selectedImage.fileName;
-
         try {
           await RNFS.copyFile(selectedImage.uri, localPath);
           setImage(localPath);
@@ -80,92 +83,125 @@ const AddRecipe = ({navigation}) => {
   };
 
   return (
-    <ScrollView style={styles.container}>
-      <Text style={styles.label}>Title:</Text>
-      <TextInput
-        style={styles.input}
-        placeholder="Enter recipe title"
-        value={title}
-        onChangeText={setTitle}
-      />
+    <SafeAreaView style={{flex: 1}}>
+      <KeyboardAvoidingView
+        style={{flex: 1}}
+        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}>
+        <ScrollView contentContainerStyle={{flexGrow: 1, paddingBottom: 20}}>
+          <View style={styles.container}>
+            <Text style={styles.label}>Title:</Text>
+            <TextInput
+              style={styles.input}
+              placeholder="Enter recipe title"
+              value={title}
+              onChangeText={setTitle}
+            />
 
-      <Text style={styles.label}>Ingredients:</Text>
-      <TextInput
-        style={styles.input}
-        placeholder="Enter ingredients"
-        value={ingredient}
-        onChangeText={setIngredient}
-      />
+            <Text style={styles.label}>Ingredients:</Text>
+            <TextInput
+              style={[styles.input, {height: Math.max(40, ingredientHeight)}]}
+              placeholder="Enter ingredients"
+              value={ingredient}
+              onChangeText={setIngredient}
+              multiline={true}
+              onContentSizeChange={event =>
+                setIngredientHeight(event.nativeEvent.contentSize.height)
+              }
+            />
 
-      <Text style={styles.label}>Directions:</Text>
-      <TextInput
-        style={styles.input}
-        placeholder="Enter directions"
-        value={direction}
-        onChangeText={setDirection}
-      />
+            <Text style={styles.label}>Directions:</Text>
+            <TextInput
+              style={[styles.input, {height: Math.max(40, directionHeight)}]}
+              placeholder="Enter directions"
+              value={direction}
+              onChangeText={setDirection}
+              multiline={true}
+              onContentSizeChange={event =>
+                setDirectionHeight(event.nativeEvent.contentSize.height)
+              }
+            />
 
-      <Text style={styles.label}>Recipe Type:</Text>
-      <View style={styles.wheelPickerContainer}>
-        <WheelPicker
-          data={recipeTypes.map((type, index) => ({
-            value: index,
-            label: type.name,
-          }))}
-          value={recipeTypes.findIndex(type => type.name === selectedType)}
-          onValueChanged={({item}) =>
-            setSelectedType(recipeTypes[item.value].name)
-          }
-        />
-      </View>
+            <Text style={styles.label}>Recipe Type:</Text>
+            <View style={styles.wheelPickerContainer}>
+              {recipeTypes && recipeTypes.length > 0 ? (
+                <WheelPicker
+                  data={recipeTypes.map((type, index) => ({
+                    value: index,
+                    label: type.name,
+                  }))}
+                  value={recipeTypes.findIndex(
+                    type => type.name === selectedType,
+                  )}
+                  onValueChanged={({item}) =>
+                    setSelectedType(
+                      recipeTypes[item.value]?.name || 'Default Type',
+                    )
+                  }
+                />
+              ) : (
+                <Text style={styles.label}>No recipe types available.</Text>
+              )}
+            </View>
 
-      <Text style={styles.label}>Image:</Text>
-      <TouchableOpacity style={styles.imagePicker} onPress={selectImage}>
-        <Text style={styles.imagePickerText}>
-          {image ? 'Change Image' : 'Select Image'}
-        </Text>
-      </TouchableOpacity>
-      {image && (
-        <Image
-          source={{uri: `file://${image}`}}
-          style={styles.imagePreview}
-          resizeMode="cover"
-        />
-      )}
+            <Text style={styles.label}>Image:</Text>
+            <TouchableOpacity style={styles.imagePicker} onPress={selectImage}>
+              <Text style={styles.imagePickerText}>
+                {image ? 'Change Image' : 'Select Image'}
+              </Text>
+            </TouchableOpacity>
+            {image && (
+              <Image
+                source={{uri: `file://${image}`}}
+                style={styles.imagePreview}
+                resizeMode="contain"
+              />
+            )}
 
-      <Button title="Add Recipe" onPress={handleAddRecipe} />
-    </ScrollView>
+            <TouchableOpacity
+              style={styles.submitButton}
+              onPress={handleAddRecipe}>
+              <Text style={styles.submitButtonText}>Add Recipe</Text>
+            </TouchableOpacity>
+          </View>
+        </ScrollView>
+      </KeyboardAvoidingView>
+    </SafeAreaView>
   );
 };
 
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    padding: 10,
-    backgroundColor: '#f9f9f9',
+    padding: 20,
+    // paddingTop: 30,
+    backgroundColor: '#fff',
   },
   label: {
     fontSize: 18,
     fontWeight: 'bold',
-    marginVertical: 5,
+    marginVertical: 8,
+    color: '#333',
   },
   input: {
     borderWidth: 1,
     borderColor: '#ddd',
-    borderRadius: 5,
-    padding: 10,
+    borderRadius: 8,
+    padding: 12,
     fontSize: 16,
-    marginBottom: 15,
     backgroundColor: '#fff',
+    marginBottom: 15,
+    textAlignVertical: 'top', // Ensures text starts at the top
   },
   wheelPickerContainer: {
-    height: 100, // Adjust as needed
-    marginBottom: 100,
+    height: 120,
+    marginBottom: 20,
+    justifyContent: 'center',
+    alignItems: 'center',
   },
   imagePicker: {
-    padding: 10,
+    padding: 12,
     backgroundColor: '#007bff',
-    borderRadius: 5,
+    borderRadius: 8,
     alignItems: 'center',
     marginBottom: 15,
   },
@@ -177,7 +213,18 @@ const styles = StyleSheet.create({
     width: '100%',
     height: 200,
     marginBottom: 15,
-    borderRadius: 5,
+    borderRadius: 8,
+  },
+  submitButton: {
+    backgroundColor: '#25AE87',
+    padding: 15,
+    borderRadius: 8,
+    alignItems: 'center',
+  },
+  submitButtonText: {
+    color: '#fff',
+    fontSize: 18,
+    fontWeight: 'bold',
   },
 });
 
