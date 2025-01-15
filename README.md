@@ -2,7 +2,7 @@
 
 A simple recipe app to help you record and organize your favorite recipes!  
 
-![App Preview](/githubimage/addrecipe.jpg)
+<img src="/githubimage/addrecipe.jpg" alt="App Preview" width="400">
 
 ## Features  
 - User login  
