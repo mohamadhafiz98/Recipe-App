@@ -26,18 +26,12 @@ A simple recipe app to help you record and organize your favorite recipes!
 1. Clone the repository:  
    ```bash
    git clone <repository_url>
-Navigate to the project directory:
+   
+2. Navigate to the project directory:
+  cd <project_directory>   
 
-bash
-Copy code
-cd <project_directory>
-Install dependencies:
+3. Install dependencies:
+   npm install
 
-bash
-Copy code
-npm install
-Run the app:
-
-bash
-Copy code
-npm start
+4. Run the app:
+   npm start
