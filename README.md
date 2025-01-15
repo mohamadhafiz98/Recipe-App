@@ -1,14 +1,14 @@
 # Recipe App  
 
 A simple recipe app to help you record and organize your favorite recipes!  
+<img src="/githubimage/signup.jpg" width="200">
+<img src="/githubimage/login.jpg" width="200">
+<img src="/githubimage/addrecipe.jpg" width="200">
+<img src="/githubimage/editrecipe.jpg" width="200">
+<img src="/githubimage/mainpage.jpg" width="200">
+<img src="/githubimage/recipedetails.jpg" width="200">
+<img src="/githubimage/recipedetails2.jpg" width="200">
 
-<img src="/githubimage/addrecipe.jpg" alt="App Preview" width="200">
-<img src="/githubimage/editrecipe.jpg" alt="App Preview" width="200">
-<img src="/githubimage/login.jpg" alt="App Preview" width="200">
-<img src="/githubimage/mainpage.jpg" alt="App Preview" width="200">
-<img src="/githubimage/recipedetails.jpg" alt="App Preview" width="200">
-<img src="/githubimage/recipedetails2.jpg" alt="App Preview" width="200">
-<img src="/githubimage/signup.jpg" alt="App Preview" width="200">
 
 ## Features  
 - User login  
